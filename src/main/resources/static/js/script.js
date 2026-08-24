@@ -21,11 +21,6 @@ const toast = document.querySelector("[data-toast]");
 document.querySelector("[data-open-create]").addEventListener("click", openCreateModal);
 document.querySelectorAll("[data-close-modal]").forEach((button) => button.addEventListener("click", closeModal));
 document.querySelectorAll("[data-close-details-modal]").forEach((button) => button.addEventListener("click", closeDetailsModal));
-document.querySelector("[data-details-edit]").addEventListener("click", () => {
-    const id = Number(detailsModal.dataset.employeeId);
-    closeDetailsModal();
-    openEditModal(id);
-});
 searchInput.addEventListener("input", renderEmployees);
 statusFilter.addEventListener("change", renderEmployees);
 form.addEventListener("submit", saveEmployee);
@@ -172,7 +167,6 @@ async function openDetailsModal(id) {
         const employee = await response.json();
         detailsTitle.textContent = employee.nome;
         detailsContent.innerHTML = employeeDetails(employee);
-        detailsModal.dataset.employeeId = id;
         detailsModal.classList.remove("hidden");
         document.body.classList.add("overflow-hidden");
     } catch (error) {
