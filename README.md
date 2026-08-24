@@ -35,3 +35,10 @@ O front espera a API REST em `/funcionarios`, usando `GET`, `POST`, `PUT`, `PATC
 - `DELETE /funcionarios/{id}` exclui um funcionário.
 
 Os dados ficam somente em memória, em uma `ArrayList<Funcionario>`, e são perdidos quando a aplicação é reiniciada.
+
+## Organização do código
+
+- `controller`: recebe as requisições HTTP e encaminha as operações.
+- `service`: concentra o CRUD, as validações e a `ArrayList<Funcionario>`.
+- `model`: contém `Funcionario` e os status possíveis.
+- `exception`: padroniza as respostas de erro da API.

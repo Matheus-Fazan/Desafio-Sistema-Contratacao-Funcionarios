@@ -1,33 +1,24 @@
-package com.techbank.desafiosistemacontratacaofuncionarios.web;
+package com.techbank.desafiosistemacontratacaofuncionarios.service;
 
+import com.techbank.desafiosistemacontratacaofuncionarios.exception.FuncionarioNaoEncontradoException;
+import com.techbank.desafiosistemacontratacaofuncionarios.exception.FuncionarioValidationException;
 import com.techbank.desafiosistemacontratacaofuncionarios.model.Funcionario;
 import com.techbank.desafiosistemacontratacaofuncionarios.model.StatusFuncionario;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Map;
+import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
-@RestController
-@RequestMapping("/funcionarios")
-public class FuncionarioController {
+@Service
+public class FuncionarioService {
 
     private final ArrayList<Funcionario> funcionarios = new ArrayList<>();
     private long proximoId = 1;
 
-    public FuncionarioController() {
+    public FuncionarioService() {
         adicionarExemplo("Ana Souza", "ana@picpay.com", "(11) 99999-1111", "Product Designer",
                 "Produto", new BigDecimal("6500.00"), "São Paulo", StatusFuncionario.EM_ANALISE);
         adicionarExemplo("Bruno Lima", "bruno@picpay.com", "(11) 99999-2222", "Desenvolvedor Java",
@@ -40,11 +31,7 @@ public class FuncionarioController {
                 "Marketing", new BigDecimal("5400.00"), "São Paulo", StatusFuncionario.EM_ANALISE);
     }
 
-    @GetMapping
-    public ArrayList<Funcionario> listar(
-            @RequestParam(name = "nome", required = false) String nome,
-            @RequestParam(name = "cargo", required = false) String cargo,
-            @RequestParam(name = "status", required = false) StatusFuncionario status) {
+    public List<Funcionario> listar(String nome, String cargo, StatusFuncionario status) {
         return funcionarios.stream()
                 .filter(funcionario -> corresponde(funcionario.getNome(), nome))
                 .filter(funcionario -> corresponde(funcionario.getCargo(), cargo))
@@ -52,65 +39,42 @@ public class FuncionarioController {
                 .collect(Collectors.toCollection(ArrayList::new));
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<?> buscarPorId(@PathVariable("id") Long id) {
-        Funcionario funcionario = encontrar(id);
-        if (funcionario == null) {
-            return respostaNaoEncontrado(id);
-        }
-        return ResponseEntity.ok(funcionario);
+    public Funcionario buscarPorId(Long id) {
+        return encontrar(id);
     }
 
-    @PostMapping
-    public ResponseEntity<?> cadastrar(@RequestBody Funcionario funcionario) {
-        String erro = validarObrigatorios(funcionario);
-        if (erro != null) {
-            return ResponseEntity.badRequest().body(Map.of("mensagem", erro));
-        }
+    public Funcionario cadastrar(Funcionario funcionario) {
+        validarObrigatorios(funcionario);
 
         funcionario.setId(proximoId++);
         if (funcionario.getStatus() == null) {
             funcionario.setStatus(StatusFuncionario.EM_ANALISE);
         }
         funcionarios.add(funcionario);
-        return ResponseEntity.status(HttpStatus.CREATED).body(funcionario);
+        return funcionario;
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<?> atualizarCompleto(@PathVariable("id") Long id,
-                                               @RequestBody Funcionario dados) {
+    public Funcionario atualizarCompleto(Long id, Funcionario dados) {
         int indice = indiceDoFuncionario(id);
-        if (indice < 0) {
-            return respostaNaoEncontrado(id);
-        }
-
-        String erro = validarObrigatorios(dados);
-        if (erro != null) {
-            return ResponseEntity.badRequest().body(Map.of("mensagem", erro));
-        }
+        validarObrigatorios(dados);
 
         dados.setId(id);
         if (dados.getStatus() == null) {
             dados.setStatus(StatusFuncionario.EM_ANALISE);
         }
         funcionarios.set(indice, dados);
-        return ResponseEntity.ok(dados);
+        return dados;
     }
 
-    @PatchMapping("/{id}")
-    public ResponseEntity<?> atualizarParcial(@PathVariable("id") Long id,
-                                              @RequestBody Funcionario dados) {
+    public Funcionario atualizarParcial(Long id, Funcionario dados) {
         Funcionario funcionario = encontrar(id);
-        if (funcionario == null) {
-            return respostaNaoEncontrado(id);
-        }
         if (dados == null) {
-            return ResponseEntity.badRequest().body(Map.of("mensagem", "Informe ao menos um campo para atualizar."));
+            throw new FuncionarioValidationException("Informe ao menos um campo para atualizar.");
         }
 
         if (dados.getCargo() != null) {
             if (dados.getCargo().isBlank()) {
-                return ResponseEntity.badRequest().body(Map.of("mensagem", "O cargo não pode ficar vazio."));
+                throw new FuncionarioValidationException("O cargo não pode ficar vazio.");
             }
             funcionario.setCargo(dados.getCargo());
         }
@@ -120,19 +84,11 @@ public class FuncionarioController {
         if (dados.getStatus() != null) {
             funcionario.setStatus(dados.getStatus());
         }
-
-        return ResponseEntity.ok(funcionario);
+        return funcionario;
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<?> excluir(@PathVariable("id") Long id) {
-        int indice = indiceDoFuncionario(id);
-        if (indice < 0) {
-            return respostaNaoEncontrado(id);
-        }
-
-        funcionarios.remove(indice);
-        return ResponseEntity.noContent().build();
+    public void excluir(Long id) {
+        funcionarios.remove(indiceDoFuncionario(id));
     }
 
     private void adicionarExemplo(String nome, String email, String telefone, String cargo,
@@ -146,7 +102,7 @@ public class FuncionarioController {
         return funcionarios.stream()
                 .filter(funcionario -> funcionario.getId().equals(id))
                 .findFirst()
-                .orElse(null);
+                .orElseThrow(() -> new FuncionarioNaoEncontradoException(id));
     }
 
     private int indiceDoFuncionario(Long id) {
@@ -155,29 +111,23 @@ public class FuncionarioController {
                 return i;
             }
         }
-        return -1;
+        throw new FuncionarioNaoEncontradoException(id);
     }
 
-    private String validarObrigatorios(Funcionario funcionario) {
+    private void validarObrigatorios(Funcionario funcionario) {
         if (funcionario == null || funcionario.getNome() == null || funcionario.getNome().isBlank()) {
-            return "O nome é obrigatório.";
+            throw new FuncionarioValidationException("O nome é obrigatório.");
         }
         if (funcionario.getEmail() == null || funcionario.getEmail().isBlank()) {
-            return "O e-mail é obrigatório.";
+            throw new FuncionarioValidationException("O e-mail é obrigatório.");
         }
         if (funcionario.getCargo() == null || funcionario.getCargo().isBlank()) {
-            return "O cargo é obrigatório.";
+            throw new FuncionarioValidationException("O cargo é obrigatório.");
         }
-        return null;
     }
 
     private boolean corresponde(String valor, String filtro) {
         return filtro == null || filtro.isBlank()
-                || valor.toLowerCase().contains(filtro.toLowerCase());
-    }
-
-    private ResponseEntity<Map<String, String>> respostaNaoEncontrado(Long id) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(Map.of("mensagem", "Funcionário de ID " + id + " não foi encontrado."));
+                || valor.toLowerCase(Locale.ROOT).contains(filtro.toLowerCase(Locale.ROOT));
     }
 }

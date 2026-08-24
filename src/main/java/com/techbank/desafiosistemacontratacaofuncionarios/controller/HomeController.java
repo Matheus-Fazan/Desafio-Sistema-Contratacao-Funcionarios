@@ -1,4 +1,4 @@
-package com.techbank.desafiosistemacontratacaofuncionarios.web;
+package com.techbank.desafiosistemacontratacaofuncionarios.controller;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
