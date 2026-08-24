@@ -1,1 +1,189 @@
-<div>html</div>
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Painel simples para acompanhar candidatos em processo de contratação.">
+    <title th:text="${pageTitle} + ' | PicPay RH'">Contratações | PicPay RH</title>
+
+    <script>
+        tailwind = {
+            config: {
+                theme: {
+                    extend: {
+                        colors: {
+                            picpay: {
+                                green: '#21C25E',
+                                dark: '#1AA34E',
+                                ink: '#1A1A1A',
+                                mist: '#F5F7FA'
+                            }
+                        },
+                        boxShadow: {
+                            soft: '0 1px 3px 0 rgba(0, 0, 0, 0.06)',
+                            green: '0 4px 16px rgba(33, 194, 94, 0.24)'
+                        }
+                    }
+                }
+            }
+        };
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" th:href="@{/css/style.css}" href="/css/style.css">
+</head>
+<body class="bg-white text-picpay-ink antialiased">
+<div class="min-h-screen">
+    <main id="dashboard">
+        <div class="mx-auto max-w-[1440px] space-y-6 px-4 py-6 sm:px-8 sm:py-8 lg:px-10">
+            <section class="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
+                <div>
+                    <p class="mb-2 text-sm font-semibold text-picpay-dark">Visão geral do processo</p>
+                    <h2 class="text-2xl font-bold tracking-tight sm:text-3xl">Acompanhe suas contratações</h2>
+                    <p class="mt-2 max-w-2xl text-[#6B7280]">Tenha uma visão rápida dos candidatos e mantenha o processo organizado.</p>
+                </div>
+                <button class="primary-button" type="button" data-open-create>
+                    <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+                    Novo funcionário
+                </button>
+            </section>
+
+            <section id="reports" class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Indicadores">
+                <article class="metric-card">
+                    <div><p class="metric-label">Total de candidatos</p><p class="metric-value" data-metric="total">0</p></div>
+                </article>
+                <article class="metric-card">
+                    <div><p class="metric-label">Em análise</p><p class="metric-value" data-metric="analysis">0</p></div>
+                </article>
+                <article class="metric-card">
+                    <div><p class="metric-label">Aprovados</p><p class="metric-value" data-metric="approved">0</p></div>
+                </article>
+                <article class="metric-card">
+                    <div><p class="metric-label">Contratados</p><p class="metric-value" data-metric="hired">0</p></div>
+                </article>
+            </section>
+
+            <section id="candidates" class="overflow-hidden rounded-md border border-[#E5E7EB] bg-white">
+                <div class="flex flex-col gap-4 border-b border-[#F3F4F6] p-5 sm:p-6 lg:flex-row lg:items-center lg:justify-between">
+                    <div>
+                        <h2 class="text-lg font-bold">Funcionários</h2>
+                        <p class="mt-1 text-sm text-[#6B7280]">Consulte e atualize os candidatos do processo.</p>
+                    </div>
+                    <div class="flex flex-col gap-3 sm:flex-row">
+                        <label class="search-field">
+                            <span class="sr-only">Pesquisar funcionário</span>
+                            <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+                            <input type="search" placeholder="Nome, cargo ou ID" data-search>
+                        </label>
+                        <label class="select-field">
+                            <span class="sr-only">Filtrar por status</span>
+                            <select data-status-filter>
+                                <option value="">Todos os status</option>
+                                <option value="EM_ANALISE">Em análise</option>
+                                <option value="APROVADO">Aprovado</option>
+                                <option value="REPROVADO">Reprovado</option>
+                                <option value="CONTRATADO">Contratado</option>
+                            </select>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full min-w-[760px] text-left text-sm">
+                        <thead class="bg-[#F9FAFB] text-xs uppercase tracking-wider text-[#6B7280]">
+                        <tr>
+                            <th class="px-6 py-4 font-semibold">Funcionário</th>
+                            <th class="px-6 py-4 font-semibold">Cargo</th>
+                            <th class="px-6 py-4 font-semibold">Departamento</th>
+                            <th class="px-6 py-4 font-semibold">Status</th>
+                            <th class="px-6 py-4 text-right font-semibold">Ações</th>
+                        </tr>
+                        </thead>
+                        <tbody class="divide-y divide-[#F3F4F6]" data-employee-list></tbody>
+                    </table>
+                    <div class="hidden px-6 py-12 text-center text-sm text-[#6B7280]" data-empty-state>
+                        Nenhum funcionário encontrado com esses filtros.
+                    </div>
+                </div>
+                <div class="flex items-center justify-between border-t border-[#F3F4F6] px-6 py-4 text-sm text-[#6B7280]">
+                    <span data-results-count>5 funcionários</span>
+                    <span class="hidden sm:inline">Dados carregados da API</span>
+                </div>
+            </section>
+        </div>
+    </main>
+</div>
+
+<div class="modal-backdrop hidden" data-modal-backdrop>
+    <section class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <div class="flex items-start justify-between border-b border-[#F3F4F6] px-6 py-5">
+            <div>
+                <p class="text-sm font-semibold text-picpay-dark">Cadastro de funcionário</p>
+                <h2 id="modal-title" class="mt-1 text-2xl font-bold">Novo funcionário</h2>
+            </div>
+            <button class="icon-button" type="button" aria-label="Fechar" data-close-modal>
+                <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg>
+            </button>
+        </div>
+
+        <form class="space-y-5 px-6 py-6" data-employee-form>
+            <input type="hidden" name="id">
+            <div class="grid gap-5 sm:grid-cols-2">
+                <label class="form-field sm:col-span-2">
+                    <span>Nome completo <b>*</b></span>
+                    <input name="nome" type="text" placeholder="Ex.: Ana Souza" required>
+                </label>
+                <label class="form-field">
+                    <span>E-mail <b>*</b></span>
+                    <input name="email" type="email" placeholder="ana@email.com" required>
+                </label>
+                <label class="form-field">
+                    <span>Telefone</span>
+                    <input name="telefone" type="tel" placeholder="(11) 99999-9999">
+                </label>
+                <label class="form-field">
+                    <span>Cargo <b>*</b></span>
+                    <input name="cargo" type="text" placeholder="Ex.: Product Designer" required>
+                </label>
+                <label class="form-field">
+                    <span>Departamento</span>
+                    <select name="departamento">
+                        <option value="Tecnologia">Tecnologia</option>
+                        <option value="Produto">Produto</option>
+                        <option value="Design">Design</option>
+                        <option value="Marketing">Marketing</option>
+                        <option value="Pessoas">Pessoas</option>
+                    </select>
+                </label>
+                <label class="form-field">
+                    <span>Salário</span>
+                    <input name="salario" type="number" min="0" step="0.01" placeholder="0,00">
+                </label>
+                <label class="form-field">
+                    <span>Cidade</span>
+                    <input name="cidade" type="text" placeholder="São Paulo">
+                </label>
+                <label class="form-field sm:col-span-2">
+                    <span>Status</span>
+                    <select name="status">
+                        <option value="EM_ANALISE">Em análise</option>
+                        <option value="APROVADO">Aprovado</option>
+                        <option value="REPROVADO">Reprovado</option>
+                        <option value="CONTRATADO">Contratado</option>
+                    </select>
+                </label>
+            </div>
+            <p class="partial-note hidden rounded-xl px-4 py-3 text-sm" data-partial-help>
+                Atualização parcial: altere somente cargo, salário ou status.
+            </p>
+            <div class="flex flex-col-reverse gap-3 border-t border-[#F3F4F6] pt-5 sm:flex-row sm:justify-end">
+                <button class="secondary-button" type="button" data-close-modal>Cancelar</button>
+                <button class="primary-button justify-center" type="submit" data-submit-form>Salvar funcionário</button>
+            </div>
+        </form>
+    </section>
+</div>
+
+<div class="toast hidden" data-toast role="status"></div>
+<script th:src="@{/js/script.js}" src="/js/script.js"></script>
+</body>
+</html>
