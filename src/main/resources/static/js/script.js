@@ -2,7 +2,7 @@ const API_URL = "/funcionarios";
 
 let employees = [];
 let editingId = null;
-let partialMode = false;
+let originalEmployee = null;
 
 const list = document.querySelector("[data-employee-list]");
 const emptyState = document.querySelector("[data-empty-state]");
@@ -10,22 +10,33 @@ const searchInput = document.querySelector("[data-search]");
 const statusFilter = document.querySelector("[data-status-filter]");
 const resultsCount = document.querySelector("[data-results-count]");
 const modal = document.querySelector("[data-modal-backdrop]");
+const detailsModal = document.querySelector("[data-details-modal]");
+const detailsContent = document.querySelector("[data-details-content]");
 const form = document.querySelector("[data-employee-form]");
 const modalTitle = document.querySelector("#modal-title");
 const submitButton = document.querySelector("[data-submit-form]");
-const partialHelp = document.querySelector("[data-partial-help]");
 const toast = document.querySelector("[data-toast]");
 
 document.querySelector("[data-open-create]").addEventListener("click", openCreateModal);
 document.querySelectorAll("[data-close-modal]").forEach((button) => button.addEventListener("click", closeModal));
+document.querySelectorAll("[data-close-details-modal]").forEach((button) => button.addEventListener("click", closeDetailsModal));
+document.querySelector("[data-details-edit]").addEventListener("click", () => {
+    const id = Number(detailsModal.dataset.employeeId);
+    closeDetailsModal();
+    openEditModal(id);
+});
 searchInput.addEventListener("input", renderEmployees);
 statusFilter.addEventListener("change", renderEmployees);
 form.addEventListener("submit", saveEmployee);
 modal.addEventListener("click", (event) => {
     if (event.target === modal) closeModal();
 });
+detailsModal.addEventListener("click", (event) => {
+    if (event.target === detailsModal) closeDetailsModal();
+});
 document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && !modal.classList.contains("hidden")) closeModal();
+    if (event.key === "Escape" && !detailsModal.classList.contains("hidden")) closeDetailsModal();
 });
 
 loadEmployees();
@@ -73,13 +84,25 @@ async function renderEmployees() {
     updateMetrics();
 
     list.querySelectorAll("[data-edit]").forEach((button) => {
-        button.addEventListener("click", () => openEditModal(Number(button.dataset.edit), false));
-    });
-    list.querySelectorAll("[data-partial]").forEach((button) => {
-        button.addEventListener("click", () => openEditModal(Number(button.dataset.partial), true));
+        button.addEventListener("click", (event) => {
+            event.stopPropagation();
+            openEditModal(Number(button.dataset.edit));
+        });
     });
     list.querySelectorAll("[data-delete]").forEach((button) => {
-        button.addEventListener("click", () => deleteEmployee(Number(button.dataset.delete)));
+        button.addEventListener("click", (event) => {
+            event.stopPropagation();
+            deleteEmployee(Number(button.dataset.delete));
+        });
+    });
+    list.querySelectorAll("[data-employee-row]").forEach((row) => {
+        row.addEventListener("click", () => openDetailsModal(Number(row.dataset.employeeRow)));
+        row.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                openDetailsModal(Number(row.dataset.employeeRow));
+            }
+        });
     });
 }
 
@@ -88,7 +111,7 @@ function employeeRow(employee) {
     const status = statusLabel(employee.status);
 
     return `
-        <tr class="transition hover:bg-[#F9FAFB]">
+        <tr class="cursor-pointer transition hover:bg-[#F9FAFB]" data-employee-row="${employee.id}" tabindex="0" role="button" aria-label="Ver detalhes de ${escapeHtml(employee.nome)}">
             <td class="px-6 py-4">
                 <div class="flex items-center gap-3">
                     <div class="avatar">${initials}</div>
@@ -104,7 +127,6 @@ function employeeRow(employee) {
             <td class="px-6 py-4">
                 <div class="flex justify-end gap-2">
                     <button class="table-action" type="button" data-edit="${employee.id}" title="Editar todos os dados">Editar</button>
-                    <button class="table-action table-action-muted" type="button" data-partial="${employee.id}" title="Alterar cargo, salário ou status">Editar parcialmente</button>
                     <button class="table-action table-action-danger" type="button" data-delete="${employee.id}" title="Excluir funcionário">Excluir</button>
                 </div>
             </td>
@@ -114,54 +136,89 @@ function employeeRow(employee) {
 
 function openCreateModal() {
     editingId = null;
-    partialMode = false;
+    originalEmployee = null;
     form.reset();
     form.elements.id.value = "";
     modalTitle.textContent = "Novo funcionário";
     submitButton.textContent = "Salvar funcionário";
-    partialHelp.classList.add("hidden");
-    setEditableFields(true);
     showModal();
 }
 
-async function openEditModal(id, isPartial) {
+async function openEditModal(id) {
     try {
         const response = await fetch(`${API_URL}/${id}`);
         if (!response.ok) throw new Error("Funcionário não encontrado.");
 
         const employee = await response.json();
         editingId = id;
-        partialMode = isPartial;
-        modalTitle.textContent = isPartial ? "Atualização parcial" : "Editar funcionário";
-        submitButton.textContent = isPartial ? "Aplicar atualização" : "Salvar alterações";
-        partialHelp.classList.toggle("hidden", !isPartial);
+        originalEmployee = employee;
+        modalTitle.textContent = "Editar funcionário";
+        submitButton.textContent = "Salvar alterações";
         Object.entries(employee).forEach(([key, value]) => {
             if (form.elements[key]) form.elements[key].value = value ?? "";
         });
-        setEditableFields(!isPartial);
         showModal();
     } catch (error) {
         showToast("Não foi possível consultar esse funcionário.");
     }
 }
 
-function setEditableFields(fullEdit) {
-    ["nome", "email", "telefone", "departamento", "cidade"].forEach((fieldName) => {
-        form.elements[fieldName].disabled = !fullEdit;
-    });
+async function openDetailsModal(id) {
+    try {
+        const response = await fetch(`${API_URL}/${id}`);
+        if (!response.ok) throw new Error("Funcionário não encontrado.");
+
+        const employee = await response.json();
+        detailsContent.innerHTML = employeeDetails(employee);
+        detailsModal.dataset.employeeId = id;
+        detailsModal.classList.remove("hidden");
+        document.body.classList.add("overflow-hidden");
+    } catch (error) {
+        showToast("Não foi possível consultar esse funcionário.");
+    }
+}
+
+function employeeDetails(employee) {
+    const status = statusLabel(employee.status);
+    const fields = [
+        ["ID", `#${employee.id}`],
+        ["Nome completo", employee.nome],
+        ["E-mail", employee.email],
+        ["Telefone", employee.telefone],
+        ["Cargo", employee.cargo],
+        ["Departamento", employee.departamento],
+        ["Salário", formatSalary(employee.salario)],
+        ["Cidade", employee.cidade]
+    ];
+
+    return `${fields.map(([label, value]) => `
+        <div class="details-field">
+            <dt>${label}</dt>
+            <dd>${escapeHtml(value || "Não informado")}</dd>
+        </div>
+    `).join("")}
+    <div class="details-field">
+        <dt>Status</dt>
+        <dd><span class="status-badge ${status.className}">${status.label}</span></dd>
+    </div>`;
 }
 
 async function saveEmployee(event) {
     event.preventDefault();
     const data = Object.fromEntries(new FormData(form).entries());
     delete data.id;
-    data.salario = data.salario ? Number(data.salario) : null;
+    data.salario = data.salario === "" ? null : Number(data.salario);
 
     const isNewEmployee = editingId === null;
-    const method = isNewEmployee ? "POST" : partialMode ? "PATCH" : "PUT";
+    const changedFields = isNewEmployee ? [] : getChangedFields(data, originalEmployee);
+    const patchFields = ["cargo", "salario", "status"];
+    const canUsePatch = changedFields.length > 0
+        && changedFields.every((fieldName) => patchFields.includes(fieldName))
+        && !(changedFields.includes("salario") && data.salario === null);
+    const method = isNewEmployee ? "POST" : canUsePatch ? "PATCH" : "PUT";
     const url = isNewEmployee ? API_URL : `${API_URL}/${editingId}`;
-    const body = partialMode
-        ? { cargo: data.cargo, salario: data.salario, status: data.status }
+    const body = method === "PATCH"
+        ? Object.fromEntries(changedFields.map((fieldName) => [fieldName, data[fieldName]]))
         : data;
 
     try {
@@ -179,6 +236,16 @@ async function saveEmployee(event) {
     } catch (error) {
         showToast("Não foi possível salvar o funcionário.");
     }
+}
+
+function getChangedFields(data, original) {
+    return ["nome", "email", "telefone", "cargo", "departamento", "salario", "cidade", "status"]
+        .filter((fieldName) => normalizeValue(data[fieldName], fieldName) !== normalizeValue(original[fieldName], fieldName));
+}
+
+function normalizeValue(value, fieldName) {
+    if (fieldName === "salario") return value === "" || value === null || value === undefined ? null : Number(value);
+    return value ?? "";
 }
 
 async function deleteEmployee(id) {
@@ -222,12 +289,22 @@ function statusLabel(status) {
 function showModal() {
     modal.classList.remove("hidden");
     document.body.classList.add("overflow-hidden");
-    form.elements[partialMode ? "cargo" : "nome"].focus();
+    form.elements.nome.focus();
 }
 
 function closeModal() {
     modal.classList.add("hidden");
     document.body.classList.remove("overflow-hidden");
+}
+
+function closeDetailsModal() {
+    detailsModal.classList.add("hidden");
+    document.body.classList.remove("overflow-hidden");
+}
+
+function formatSalary(salary) {
+    if (salary === null || salary === undefined || salary === "") return "Não informado";
+    return Number(salary).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
 function showToast(message) {

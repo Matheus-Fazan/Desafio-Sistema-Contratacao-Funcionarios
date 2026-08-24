@@ -160,6 +160,33 @@ button {
     color: #9ca3af;
 }
 
+.details-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.details-field {
+    min-width: 0;
+    border: 1px solid #f3f4f6;
+    border-radius: 4px;
+    padding: 12px;
+}
+
+.details-field dt {
+    color: #6b7280;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.details-field dd {
+    margin: 5px 0 0;
+    overflow-wrap: anywhere;
+    color: #1f2937;
+    font-size: 14px;
+}
+
 .status-badge {
     display: inline-flex;
     align-items: center;
@@ -197,11 +224,6 @@ button {
 
 .table-action-danger {
     color: #6b7280;
-}
-
-.partial-note {
-    background: #e6f9ed;
-    color: #1aa34e;
 }
 
 .icon-button {
@@ -267,5 +289,9 @@ button {
 
     .modal-backdrop {
         padding: 8px;
+    }
+
+    .details-grid {
+        grid-template-columns: 1fr;
     }
 }
