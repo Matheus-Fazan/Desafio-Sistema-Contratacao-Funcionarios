@@ -29,7 +29,7 @@
         };
     </script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" th:href="@{/css/style.css}" href="/css/style.css">
+    <link rel="stylesheet" th:href="@{/css/style.css(v=2)}" href="/css/style.css?v=2">
 </head>
 <body class="bg-white text-picpay-ink antialiased">
 <div class="min-h-screen">
@@ -188,7 +188,7 @@
         <div class="flex items-start justify-between border-b border-[#F3F4F6] px-6 py-5">
             <div>
                 <p class="text-sm font-semibold text-picpay-dark">Informações do funcionário</p>
-                <h2 id="details-modal-title" class="mt-1 text-2xl font-bold">Detalhes</h2>
+                <h2 id="details-modal-title" class="mt-1 text-2xl font-bold">Detalhes do funcionário</h2>
             </div>
             <button class="icon-button" type="button" aria-label="Fechar" data-close-details-modal>
                 <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg>

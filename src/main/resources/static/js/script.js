@@ -12,6 +12,7 @@ const resultsCount = document.querySelector("[data-results-count]");
 const modal = document.querySelector("[data-modal-backdrop]");
 const detailsModal = document.querySelector("[data-details-modal]");
 const detailsContent = document.querySelector("[data-details-content]");
+const detailsTitle = document.querySelector("#details-modal-title");
 const form = document.querySelector("[data-employee-form]");
 const modalTitle = document.querySelector("#modal-title");
 const submitButton = document.querySelector("[data-submit-form]");
@@ -169,6 +170,7 @@ async function openDetailsModal(id) {
         if (!response.ok) throw new Error("Funcionário não encontrado.");
 
         const employee = await response.json();
+        detailsTitle.textContent = employee.nome;
         detailsContent.innerHTML = employeeDetails(employee);
         detailsModal.dataset.employeeId = id;
         detailsModal.classList.remove("hidden");
