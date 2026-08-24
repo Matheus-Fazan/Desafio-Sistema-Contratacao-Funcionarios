@@ -200,6 +200,7 @@ function updateMetrics() {
         total: employees.length,
         analysis: employees.filter((employee) => employee.status === "EM_ANALISE").length,
         approved: employees.filter((employee) => employee.status === "APROVADO").length,
+        rejected: employees.filter((employee) => employee.status === "REPROVADO").length,
         hired: employees.filter((employee) => employee.status === "CONTRATADO").length
     };
     Object.entries(metrics).forEach(([key, value]) => {
